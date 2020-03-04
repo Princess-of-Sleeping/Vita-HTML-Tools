@@ -1,0 +1,197 @@
+﻿<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+</head>
+
+<body>
+
+<style>
+
+	body{
+		padding:5px 0 0 10px; /* 余白の調整 */
+	}
+
+	div{
+		text-align: right;
+		width:100px;
+	}
+
+
+	dinput{
+		text-align: right;
+		width:100px;
+	}
+
+
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+        }
+
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+
+</style>
+
+<canvas id="c" width="0" height="0"></canvas><br>
+
+Select image file (png, jpg): <input type="file" id="file_select" onchange="onFileSelected(this)">
+
+<br><br>
+
+option<br>
+
+Invert color : <input type="checkbox" id="invert_color_check">
+
+<br><br>
+
+Advanced option<br>
+
+AND operation : <input type="checkbox" id="and_operation_check"> - 
+red <input type="checkbox" id="and_operation_red_check">:<input type="number" style="text-align: right; width:30px;" id="and_operation_red" value="0" max="255" min="0" onKeyUp="num_0_255_func(this)"> |
+green <input type="checkbox" id="and_operation_green_check">:<input type="number" style="text-align: right; width:30px;" id="and_operation_green" value="0" max="255" min="0" onKeyUp="num_0_255_func(this)"> |
+blue <input type="checkbox" id="and_operation_blue_check">:<input type="number" style="text-align: right; width:30px;" id="and_operation_blue" value="0" max="255" min="0" onKeyUp="num_0_255_func(this)">
+<br>
+
+OR operation : <input type="checkbox" id="or_operation_check"> - 
+red <input type="checkbox" id="or_operation_red_check">:<input type="number" style="text-align: right; width:30px;" id="or_operation_red" value="0" max="255" min="0" onKeyUp="num_0_255_func(this)"> |
+green <input type="checkbox" id="or_operation_green_check">:<input type="number" style="text-align: right; width:30px;" id="or_operation_green" value="0" max="255" min="0" onKeyUp="num_0_255_func(this)"> |
+blue <input type="checkbox" id="or_operation_blue_check">:<input type="number" style="text-align: right; width:30px;" id="or_operation_blue" value="0" max="255" min="0" onKeyUp="num_0_255_func(this)">
+<br>
+
+<img src="./ss1.png" width="850" height="500" />
+
+<script>
+
+var img_size = 0;
+
+function file_download(data, file_name){
+
+	var download_link = document.createElement("a");
+
+	var Blob_Obj = new Blob([data],{type: "application/octet-stream"});
+	download_link.href = window.URL.createObjectURL(Blob_Obj);
+	download_link.download = file_name;
+	document.body.appendChild(download_link);
+	download_link.click();
+	document.body.removeChild(download_link);
+
+}
+
+function num_0_255_func(e){
+	if(e.value>255){
+		e.value=255;
+	}else if(e.value<0){
+		e.value=0;
+	}
+}
+
+
+
+function onFileSelected(input) {
+
+    console.log("onFileSelected");
+
+    var file = input.files[0];
+
+    var reader = new FileReader();
+
+    reader.onload = onFileLoaded;
+
+    reader.readAsDataURL(file);
+
+}
+
+function onFileLoaded(e) {
+
+    console.log("onFileLoaded");
+
+    var src_data = e.target.result;
+
+    var img = new Image();
+
+    img.onload = onImageSetted;
+    img.src = src_data;
+}
+
+function onImageSetted(e) {
+
+	console.log("onImageSetted");
+
+	var data = createImageData(e.target);
+
+	if(data.width != 960 || data.height != 544){
+
+		alert("support image is 960x544 image");
+		return 0;
+	}
+
+	c.width = data.width;
+	c.height = data.height;
+
+	console.log(data.width);
+	console.log(data.height);
+	console.log("size : 0x" + (img_size).toString(16));
+
+	document.getElementById('c').getContext('2d').putImageData(data, 0, 0);
+
+	file_select.value = null;
+}
+
+function createImageData(img) {
+
+	console.log("createImageData");
+
+	var cv = document.createElement('canvas');
+
+	cv.width = img.naturalWidth;
+	cv.height = img.naturalHeight;
+
+	var ct = cv.getContext('2d');
+
+	img_size = cv.width * cv.height * 4;
+
+	ct.drawImage(img, 0, 0);
+
+	var image_data = ct.getImageData(0, 0, cv.width, cv.height);
+
+	if(cv.width != 960 || cv.height != 544){
+		return image_data;
+	}
+
+	if(or_operation_check.checked){
+		for(var i=0;i<img_size;i+=4){
+			if(or_operation_red_check.checked)image_data.data[i+0] |= (or_operation_red.value + 0);//red
+			if(or_operation_green_check.checked)image_data.data[i+1] |= (or_operation_green.value + 0);//green
+			if(or_operation_blue_check.checked)image_data.data[i+2] |= (or_operation_blue.value + 0);//blue
+			//image_data.data[i+3] |= 0xFF;
+		}
+	}
+
+	if(and_operation_check.checked){
+		for(var i=0;i<img_size;i+=4){
+			if(and_operation_red_check.checked)image_data.data[i+0] &= (and_operation_red.value + 0);//red
+			if(and_operation_green_check.checked)image_data.data[i+1] &= (and_operation_green.value + 0);//green
+			if(and_operation_blue_check.checked)image_data.data[i+2] &= (and_operation_blue.value + 0);//blue
+			//image_data.data[i+3] &= 0xFF;
+		}
+	}
+
+	if(invert_color_check.checked){
+		for(var i=0;i<img_size;i+=4){
+			image_data.data[i+0] ^= 0xFF;//red
+			image_data.data[i+1] ^= 0xFF;//green
+			image_data.data[i+2] ^= 0xFF;//blue
+			//image_data.data[i+3] ^= 0xFF;
+		}
+	}
+
+	file_download(image_data.data, "boot_splash.bin");
+
+	return image_data;
+}
+
+
+</script>
+</body></html>
